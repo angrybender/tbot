@@ -20,7 +20,7 @@ logger.addHandler(consoleHandler)
 
 API_KEY = os.environ.get('API_KEY')
 CHAT_ID = int(os.environ.get('CHAT_ID'))
-MY_NAME = os.environ.get('NY_NAME')
+MY_NAME = os.environ.get('MY_NAME')
 TIME_IDLE_THRESHOLD = [3600, 3600*3]
 MESSAGES_CLUSTER_THRESHOLD = 60
 SCORE_REPLY_THRESHOLD = 0.75
