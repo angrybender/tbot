@@ -1,0 +1,4 @@
+redis
+tensorflow==2.6.0
+keras==2.6
+transformers[torch]==4.14.0

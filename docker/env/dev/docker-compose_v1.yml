@@ -1,0 +1,42 @@
+version: '3'
+networks:
+  default:
+    external:
+      name: kirv_tbot
+
+services:
+  service-tbot-message-cacther:
+    image: service-tbot-app
+    build:
+      context: ../../../
+      dockerfile: docker/src/app/Dockerfile
+    environment:
+      API_KEY: ${API_KEY}
+      CHAT_ID: ${CHAT_ID}
+      REDIS_HOST: service-tbot-redis
+      MY_NAME: ${MY_NAME}
+    volumes:
+      - ../../../:/app
+    links:
+      - service-tbot-redis
+    command: ["python", "/app/messages_catcher.py"]
+
+  service-tbot-logic:
+    image: service-tbot-app
+    build:
+      context: ../../../
+      dockerfile: docker/src/app/Dockerfile
+    environment:
+      API_KEY: ${API_KEY}
+      CHAT_ID: ${CHAT_ID}
+      REDIS_HOST: service-tbot-redis
+      MY_NAME: ${MY_NAME}
+    volumes:
+      - ../../../:/app
+    links:
+      - service-tbot-redis
+    command: ["python", "/app/bot_main.py"]
+
+  service-tbot-redis:
+    image: redis:5.0.7-alpine
+    command: redis-server --save "" --appendonly no --maxmemory 1gb --maxmemory-policy allkeys-lru
