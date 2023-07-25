@@ -1,4 +1,6 @@
 redis
-tensorflow==2.6.0
-keras==2.6
-transformers[torch]==4.14.0
+torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+transformers
+sentencepiece
+git+https://github.com/huggingface/peft.git
+elasticsearch==7.17.2

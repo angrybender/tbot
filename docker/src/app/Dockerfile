@@ -1,7 +1,6 @@
-FROM python:3.8.16-slim-buster
+FROM python:3.10.12-slim
 COPY docker/src/app/requirements.txt requirements.txt
-RUN pip install torch==1.9.1+cpu torchvision==0.10.1+cpu torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html \
-    && pip install -r requirements.txt \
+RUN pip install -r requirements.txt \
     && echo "Europe/Moscow" >  /etc/timezone \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

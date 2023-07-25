@@ -31,6 +31,7 @@ services:
       CHAT_ID: ${CHAT_ID}
       REDIS_HOST: service-tbot-redis
       MY_NAME: ${MY_NAME}
+      ES_HOST: ${ES_HOST}
     volumes:
       - ../../../:/app
     links:
