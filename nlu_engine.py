@@ -21,8 +21,8 @@ logger.info('Load main NLU model...')
 generator_tokenizer = LlamaTokenizer.from_pretrained("huggyllama/llama-7b")
 generator_tokenizer.pad_token_id = 0
 
-generate_model = LlamaForCausalLM.from_pretrained('/app/models/main/generator_llama')
-generate_model = PeftModel.from_pretrained(generate_model, "/app/models/main/train_llama_lora/")
+generate_model = LlamaForCausalLM.from_pretrained('/app/models/generator_llama')
+generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/")
 
 score_pattern_tokens = generator_tokenizer("Хорошо", return_tensors="pt")['input_ids'][0][1:]
 logger.info('Ready to work!')
@@ -72,7 +72,7 @@ def generate_message(context, message, progress_cb=None):
     prompt_score, main_prompt, main_inputs = pre_scores[0]
 
     logger.info('Calc prompt: ' + main_prompt)
-    logger.info('Prompt score: ' + prompt_score)
+    logger.info(f'Prompt score: {prompt_score}')
 
     # generate answers and score it
     generate_ids = generate_model.generate(

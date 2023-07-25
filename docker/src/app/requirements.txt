@@ -1,5 +1,4 @@
 redis
-torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 transformers
 sentencepiece
 git+https://github.com/huggingface/peft.git

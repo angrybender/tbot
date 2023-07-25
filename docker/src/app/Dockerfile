@@ -1,6 +1,8 @@
 FROM python:3.10.12-slim
 COPY docker/src/app/requirements.txt requirements.txt
-RUN pip install -r requirements.txt \
+RUN apt update -y && apt install git curl -y \
+    && pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
+    && pip install -r requirements.txt \
     && echo "Europe/Moscow" >  /etc/timezone \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
