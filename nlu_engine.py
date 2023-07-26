@@ -3,6 +3,7 @@ from transformers import LlamaForCausalLM, LlamaTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model, TaskType, PeftConfig, PeftModel
 import torch
 import numpy as np
+import os
 
 from context_service import get_context
 
@@ -21,16 +22,32 @@ logger.info('Load main NLU model...')
 generator_tokenizer = LlamaTokenizer.from_pretrained("huggyllama/llama-7b")
 generator_tokenizer.pad_token_id = 0
 
-generate_model = LlamaForCausalLM.from_pretrained('/app/models/generator_llama')
-generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/")
+if os.environ.get('DEBUG'):
+    generate_model = None
+else:
+    generate_model = LlamaForCausalLM.from_pretrained('/app/models/generator_llama')
+    generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/")
+
+
 
 score_pattern_tokens = generator_tokenizer("Хорошо", return_tensors="pt")['input_ids'][0][1:]
 logger.info('Ready to work!')
 
 
-def generate_message(context, message, progress_cb=None):
+def generate_message(contexts, message, progress_cb=None):
+    if not generate_model:
+        return 'test output', 1.0
+
+    if contexts and len(contexts) > 5:
+        contexts = [contexts[0]] + contexts[-4:]
+
     message = re.sub(r'\s+', ' ', message).strip()
-    context = re.sub(r'\s+', ' ', context).strip()
+    context = " ".join(contexts) if contexts else ''
+
+    chat_prompt = ''
+    for c in contexts:
+        chat_prompt += "Comment:" + c + "\n\n"
+    chat_prompt = chat_prompt.strip()
 
     if context:
         prompt_contexts = get_context(context, 1)
@@ -49,12 +66,14 @@ def generate_message(context, message, progress_cb=None):
 
         prompt = ""
         if prompt_context:
-            prompt = "Comment:" + prompt_context
+            prompt = "Comment:" + prompt_context + "\n\n"
 
-        if context:
-            prompt += "\n\nComment:" + context
+        if chat_prompt:
+            prompt += chat_prompt
 
+        prompt = prompt.strip()
         prompt += "\n\nComment:" + message
+        prompt = prompt.strip()
 
         main_inputs = generator_tokenizer(prompt + "\n\nWrite comment:", return_tensors="pt")
         main_score_generate = generate_model.generate(

@@ -15,6 +15,7 @@ services:
       CHAT_ID: ${CHAT_ID}
       REDIS_HOST: service-tbot-redis
       MY_NAME: ${MY_NAME}
+      DEBUG: ${DEBUG}
     volumes:
       - ../../../:/app
     links:
@@ -23,6 +24,7 @@ services:
 
   service-tbot-logic:
     image: service-tbot-app
+    restart: always
     build:
       context: ../../../
       dockerfile: docker/src/app/Dockerfile
@@ -32,6 +34,7 @@ services:
       REDIS_HOST: service-tbot-redis
       MY_NAME: ${MY_NAME}
       ES_HOST: ${ES_HOST}
+      DEBUG: ${DEBUG}
     volumes:
       - ../../../:/app
     links:

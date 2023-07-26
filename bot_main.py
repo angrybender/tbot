@@ -1,4 +1,4 @@
-from messages import read_history, save_message
+from messages import read_history, save_message, save_chat_sequence, find_chat_sequence_by_message
 from nlu_engine import generate_message
 from formatter_output import process_reply, preprocess_messages
 import requests
@@ -32,7 +32,8 @@ WAIT_TO_POST_COMMENT['value'] = random.randint(TIME_IDLE_THRESHOLD[0], TIME_IDLE
 
 def send_message(text):
     text = text.strip()
-    requests.post(f'https://api.telegram.org/bot{API_KEY}/sendMessage?chat_id={CHAT_ID}&text={text}')
+    result = requests.post(f'https://api.telegram.org/bot{API_KEY}/sendMessage?chat_id={CHAT_ID}&text={text}').json()
+    return result['result']['message_id'] if result['ok'] else -1
 
 
 def progress_cb(epoch, attempt):
@@ -68,16 +69,17 @@ def main_cycle():
 
         message = message['message']
         post = message.get('text', '')
-        context = ""
+        chat_sequence = []
         if len(post) < 3:
             continue
 
         is_mention = False
+        reply_to_my_message_id = 0
         if 'reply_to_message' in message \
                 and message['reply_to_message']['from']['is_bot'] \
                 and message['reply_to_message']['from']['username'] == MY_NAME:
 
-            context = preprocess_messages(message['reply_to_message']['text'])
+            reply_to_my_message_id = message['reply_to_message']['message_id']
             is_mention = True
         elif post.find('@' + MY_NAME) == 0:
             post = ' '.join(post.split(' ')[1:])
@@ -87,7 +89,11 @@ def main_cycle():
         if is_mention:
             logger.info("Reply to mention")
 
-            reply_message, reply_score = generate_message(context, post, progress_cb)
+            # find chat:
+            chat_sequence = find_chat_sequence_by_message(reply_to_my_message_id)
+            saved_context = [preprocess_messages(m['text']) for m in chat_sequence]
+
+            reply_message, reply_score = generate_message(saved_context, post, progress_cb)
             reply_message = process_reply(reply_message)
 
             message_prefix = '@' + message['from']['username']
@@ -97,9 +103,14 @@ def main_cycle():
             reply_message = message_prefix + ' ' + reply_message
 
         if reply_message:
-            send_message(reply_message)
+            answer_id = send_message(reply_message)
+
             source_message['BOT:processed'] = True
             save_message(source_message)
+
+            save_chat_sequence(chat_sequence[0]['id'] if chat_sequence else message['message_id'], message['message_id'], post)
+            save_chat_sequence(chat_sequence[0]['id'] if chat_sequence else message['message_id'], answer_id, reply_message)
+
             is_mention_reply = True
 
     if is_mention_reply:
@@ -116,7 +127,7 @@ def main_cycle():
             return
 
         logger.info("Comment post")
-        reply_message, reply_score = generate_message('', post)
+        reply_message, reply_score = generate_message([], post)
         if reply_score < SCORE_REPLY_THRESHOLD:
             logger.info("Score too low: " + str(reply_score))
             return
