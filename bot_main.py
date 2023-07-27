@@ -5,6 +5,7 @@ import requests
 import os
 import time
 import random
+from context_service import get_status
 
 import logging
 from sys import stdout
@@ -20,11 +21,13 @@ logger.addHandler(consoleHandler)
 
 API_KEY = os.environ.get('API_KEY')
 CHAT_ID = int(os.environ.get('CHAT_ID'))
+TECH_CHAT_ID = int(os.environ.get('TECH_CHAT_ID'))
 MY_NAME = os.environ.get('MY_NAME')
 TIME_IDLE_THRESHOLD = [3600, 3600*3]
 MESSAGES_CLUSTER_THRESHOLD = 60
 SCORE_REPLY_THRESHOLD = 0.75
-MIN_POST_REPLY_WORDS = 10
+LEN_REPLY_THRESHOLD = 10
+MIN_POST_REPLY_WORDS = 20
 
 WAIT_TO_POST_COMMENT = {}
 WAIT_TO_POST_COMMENT['value'] = random.randint(TIME_IDLE_THRESHOLD[0], TIME_IDLE_THRESHOLD[1])
@@ -34,6 +37,26 @@ def send_message(text):
     text = text.strip()
     result = requests.post(f'https://api.telegram.org/bot{API_KEY}/sendMessage?chat_id={CHAT_ID}&text={text}').json()
     return result['result']['message_id'] if result['ok'] else -1
+
+
+def send_debug_message(text):
+    text = text.strip()
+    result = requests.post(f'https://api.telegram.org/bot{API_KEY}/sendMessage?chat_id={TECH_CHAT_ID}&text={text}').json()
+    assert(result['ok'])
+
+
+def command_info():
+    meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
+    total_mem_gib = round(meminfo['MemTotal'] / (1024. ** 2), 1)
+    free_mem_gib = round(meminfo['MemAvailable'] / (1024. ** 2), 1)
+
+    antology_size = get_status()
+    if antology_size > 0:
+        a_status = f"В антологии загружено статей: {antology_size}"
+    else:
+        a_status = "Ошибка загрузки антологии!"
+
+    send_message(f"Модель загружена\nОбщий объем памяти в системе: {total_mem_gib}Gb\nСвободно памяти в системе: {free_mem_gib}Gb\n{a_status}")
 
 
 def progress_cb(epoch, attempt):
@@ -69,6 +92,7 @@ def main_cycle():
 
         message = message['message']
         post = message.get('text', '')
+
         chat_sequence = []
         if len(post) < 3:
             continue
@@ -85,7 +109,14 @@ def main_cycle():
             post = ' '.join(post.split(' ')[1:])
             is_mention = True
 
+        if is_mention and post.strip() == 'info':
+            command_info()
+            source_message['BOT:processed'] = True
+            save_message(source_message)
+            continue
+
         reply_message = ''
+        raw_reply_message = ''
         if is_mention:
             logger.info("Reply to mention")
 
@@ -100,6 +131,7 @@ def main_cycle():
             if reply_score < SCORE_REPLY_THRESHOLD:
                 message_prefix += ' (я не уверен в релевантности ответа)\n'
 
+            raw_reply_message = reply_message
             reply_message = message_prefix + ' ' + reply_message
 
         if reply_message:
@@ -108,8 +140,9 @@ def main_cycle():
             source_message['BOT:processed'] = True
             save_message(source_message)
 
-            save_chat_sequence(chat_sequence[0]['id'] if chat_sequence else message['message_id'], message['message_id'], post)
-            save_chat_sequence(chat_sequence[0]['id'] if chat_sequence else message['message_id'], answer_id, reply_message)
+            msgid = chat_sequence[0]['id'] if chat_sequence else message['message_id']
+            save_chat_sequence(msgid, message['message_id'], post)
+            save_chat_sequence(msgid, answer_id, raw_reply_message)
 
             is_mention_reply = True
 
@@ -127,13 +160,13 @@ def main_cycle():
             return
 
         logger.info("Comment post")
-        reply_message, reply_score = generate_message([], post)
-        if reply_score < SCORE_REPLY_THRESHOLD:
+        reply_message, reply_score = generate_message([], post + "\nНапиши комментарий к новости")
+        if reply_score < SCORE_REPLY_THRESHOLD or len(reply_message.split()) < LEN_REPLY_THRESHOLD:
             logger.info("Score too low: " + str(reply_score))
-            return
+        else:
+            reply_message = '>>> ' + post[:40] + '...\n' + reply_message
+            send_message(reply_message)
 
-        reply_message = '>>> ' + post[:40] + '...\n' + reply_message
-        send_message(reply_message)
         last_post['BOT:processed'] = True
         save_message(last_post)
 
@@ -141,10 +174,16 @@ def main_cycle():
         logger.info("Sleep for " + str(WAIT_TO_POST_COMMENT['value']))
 
 
+send_debug_message("INFO: Я готов!")
+last_send_error = time.time()
 while True:
     try:
         main_cycle()
-    except Exception:
+    except Exception as e:
+        if time.time() - last_send_error > 3600:
+            send_debug_message("ERROR: \n" + str(e))
+            last_send_error = time.time()
+
         logger.exception("message")
         time.sleep(30)
 

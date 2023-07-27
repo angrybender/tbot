@@ -23,3 +23,18 @@ def get_context(q, limit):
         }
     }, size=limit * 2)
     return list(set([_['_source']['text'] for _ in article['hits']['hits']]))[:limit]
+
+
+def get_status():
+
+    try:
+        conn = Elasticsearch(
+            ES_HOSTS,
+            http_auth=(ES_USER, ES_PASS),
+            use_ssl=True,
+            verify_certs=True,
+            ca_certs=ES_CA)
+
+        return conn.count(index='wiki_1').get('count', -1)
+    except:
+        return -1

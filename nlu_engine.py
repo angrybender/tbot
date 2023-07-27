@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('BOT')
 
 
-MAX_PROMPT_LEN=300
+MAX_PROMPT_LEN=150
 MAX_SAMPLE=3
 MAX_LEN_APPEND=100
 
@@ -37,6 +37,10 @@ logger.info('Ready to work!')
 def generate_message(contexts, message, progress_cb=None):
     if not generate_model:
         return 'test output', 1.0
+
+    _message = message.split()
+    if len(_message) > MAX_PROMPT_LEN:
+        message = ' '.join(_message[:MAX_PROMPT_LEN])
 
     if contexts and len(contexts) > 5:
         contexts = [contexts[0]] + contexts[-4:]
@@ -104,7 +108,8 @@ def generate_message(contexts, message, progress_cb=None):
         renormalize_logits=True,
         num_beams=2,
     )
-    progress_cb(1, 1)
+    if progress_cb:
+        progress_cb(1, 1)
 
     output_variants = []
     output_comments = {}
@@ -131,7 +136,8 @@ def generate_message(contexts, message, progress_cb=None):
         max_score_prob = np.max(pattern_probs)
 
         output_variants.append((max_score_prob, output_comment))
-        progress_cb(1, 1)
+        if progress_cb:
+            progress_cb(1, 1)
 
     output_variants = sorted(output_variants, key=lambda score_comment: -score_comment[0])
     max_score, output_comment = output_variants[0]

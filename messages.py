@@ -36,7 +36,7 @@ def save_chat_sequence(parent_id, message_id, message_text):
     if not sequence:
         sequence = []
 
-    sequence.append({'id': message_id, 'text': message_text})
+    sequence.append({'id': message_id, 'text': message_text.strip()})
 
     r.set('MC_CHAT_SEQUENCE.' + str(parent_id), json.dumps(sequence))
     r.expire('MC_CHAT_SEQUENCE.' + str(parent_id), 3600)
