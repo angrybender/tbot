@@ -134,7 +134,12 @@ def main_cycle():
             chat_sequence = find_chat_sequence_by_message(reply_to_my_message_id)
             saved_context = [preprocess_messages(m['text']) for m in chat_sequence]
 
-            reply_message, reply_score = generate_answer_for_chat(saved_context, post, progress_cb)
+            try:
+                reply_message, reply_score = generate_answer_for_chat(saved_context, post, progress_cb)
+            except Exception as e:
+                save_message(source_message, True)
+                raise e
+
             reply_message = process_reply(reply_message)
 
             message_prefix = '@' + message['from']['username']
