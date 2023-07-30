@@ -22,8 +22,11 @@ def read_history():
     return list(messages)
 
 
-def save_message(message):
+def save_message(message, processed=False):
     r = redis.Redis(host=REDIS_HOST, port=6379, db=0)
+
+    if processed:
+        message['BOT:processed'] = True
 
     r.set('MC_MESSAGES.' + str(message['update_id']), json.dumps(message))
     r.expire('MC_MESSAGES.' + str(message['update_id']), 3600*3)

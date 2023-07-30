@@ -16,6 +16,7 @@ logger = logging.getLogger('BOT')
 MAX_PROMPT_LEN=150
 MAX_SAMPLE=3
 MAX_LEN_APPEND=100
+MAX_CONTEXT_LEN=5
 
 
 logger.info('Load main NLU model...')
@@ -29,21 +30,25 @@ else:
     generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/")
 
 
-
 score_pattern_tokens = generator_tokenizer("Хорошо", return_tensors="pt")['input_ids'][0][1:]
 logger.info('Ready to work!')
 
 
+def truncate_text_to_max(text, max_len):
+    words = text.split()
+    if len(words) > max_len:
+        return ' '.join(words[:max_len])
+    else:
+        return text
+
+
 def generate_message(contexts, message, progress_cb=None):
     if not generate_model:
-        return 'test output', 1.0
+        return "test output\nHistory:\n" + "\n".join(contexts) + "\nsource message:\n" + message, 1.0
 
-    _message = message.split()
-    if len(_message) > MAX_PROMPT_LEN:
-        message = ' '.join(_message[:MAX_PROMPT_LEN])
-
-    if contexts and len(contexts) > 5:
-        contexts = [contexts[0]] + contexts[-4:]
+    message = truncate_text_to_max(message, MAX_PROMPT_LEN)
+    if contexts and len(contexts) > MAX_CONTEXT_LEN:
+        contexts = [contexts[0]] + contexts[-(MAX_CONTEXT_LEN-1):]
 
     message = re.sub(r'\s+', ' ', message).strip()
     context = " ".join(contexts) if contexts else ''
@@ -63,13 +68,9 @@ def generate_message(contexts, message, progress_cb=None):
     # generate context and scores it
     pre_scores = []
     for prompt_context in [None] + prompt_contexts:
-        if prompt_context:
-            _prompt_context = prompt_context.split()
-            if len(_prompt_context) > MAX_PROMPT_LEN:
-                prompt_context = ' '.join(_prompt_context[:MAX_PROMPT_LEN])
-
         prompt = ""
         if prompt_context:
+            prompt_context = truncate_text_to_max(prompt_context, MAX_PROMPT_LEN)
             prompt = "Comment:" + prompt_context + "\n\n"
 
         if chat_prompt:
@@ -81,7 +82,8 @@ def generate_message(contexts, message, progress_cb=None):
 
         main_inputs = generator_tokenizer(prompt + "\n\nWrite comment:", return_tensors="pt")
         main_score_generate = generate_model.generate(
-            input_ids=main_inputs["input_ids"], max_new_tokens=100,
+            input_ids=main_inputs["input_ids"],
+            max_new_tokens=MAX_LEN_APPEND,
             pad_token_id=generator_tokenizer.pad_token_id,
             do_sample=False,
             output_scores=True, return_dict_in_generate=True
@@ -99,7 +101,8 @@ def generate_message(contexts, message, progress_cb=None):
 
     # generate answers and score it
     generate_ids = generate_model.generate(
-        input_ids=main_inputs["input_ids"], max_new_tokens=100,
+        input_ids=main_inputs["input_ids"],
+        max_new_tokens=MAX_LEN_APPEND,
         pad_token_id=generator_tokenizer.pad_token_id,
         num_return_sequences=MAX_SAMPLE,
         do_sample=True,
@@ -143,3 +146,10 @@ def generate_message(contexts, message, progress_cb=None):
     max_score, output_comment = output_variants[0]
     return output_comment, max_score
 
+
+def generate_answer_for_chat(contexts: list, message: str, progress_cb=None):
+    return generate_message(contexts, message, progress_cb)
+
+
+def generate_comment_to_post(post):
+    return generate_message([], post + "\nНапиши комментарий к новости")

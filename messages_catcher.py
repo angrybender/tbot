@@ -1,34 +1,24 @@
 import time
-import requests
 import os
 import redis
 import json
 from messages import save_message
+from im_service import get_channel_message
 
 import logging
 from sys import stdout
 
 # Define logger
 logger = logging.getLogger('BOT')
-
-logger.setLevel(logging.INFO) # set logger level
+logger.setLevel(logging.INFO)
 logFormatter = logging.Formatter("%(name)-12s %(asctime)s %(levelname)-8s %(filename)s:%(funcName)s %(message)s")
-consoleHandler = logging.StreamHandler(stdout) #set streamhandler to stdout
+consoleHandler = logging.StreamHandler(stdout)
 consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
 
 
-API_KEY = os.environ.get('API_KEY')
 CHAT_ID = int(os.environ.get('CHAT_ID'))
 REDIS_HOST = os.environ.get('REDIS_HOST')
-
-
-def get_channel_message(channel_id, offset):
-    message = requests.get(f'https://api.telegram.org/bot{API_KEY}/getUpdates?offset={offset}').json()
-    if 'result' not in message or not message['result']:
-        return []
-
-    return [m for m in message['result'] if 'message' in m and m['message']['chat']['id'] == channel_id]
 
 
 def catch_messages(channel_id):
