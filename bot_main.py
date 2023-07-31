@@ -186,7 +186,7 @@ def main_cycle():
             logger.info("Comment post")
             reply_message, reply_score = generate_comment_to_post(post)
             if reply_score < SCORE_REPLY_THRESHOLD or len(reply_message.split()) < LEN_REPLY_THRESHOLD:
-                logger.info("Score too low: " + str(reply_score))
+                logger.info("Score too low: " + str(reply_score) + "\n" + reply_message)
             else:
                 reply_message = '>>> ' + post[:80] + '...\n' + reply_message
                 send_message(CHAT_ID, reply_message)
