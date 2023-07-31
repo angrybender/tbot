@@ -182,16 +182,14 @@ def main_cycle():
             logger.info("Try to fetch URI content...")
             post = get_content(post.strip())
 
-        if len(post.split()) < MIN_POST_REPLY_WORDS:
-            return
-
-        logger.info("Comment post")
-        reply_message, reply_score = generate_comment_to_post(post)
-        if reply_score < SCORE_REPLY_THRESHOLD or len(reply_message.split()) < LEN_REPLY_THRESHOLD:
-            logger.info("Score too low: " + str(reply_score))
-        else:
-            reply_message = '>>> ' + post[:40] + '...\n' + reply_message
-            send_message(CHAT_ID, reply_message)
+        if len(post.split()) >= MIN_POST_REPLY_WORDS:
+            logger.info("Comment post")
+            reply_message, reply_score = generate_comment_to_post(post)
+            if reply_score < SCORE_REPLY_THRESHOLD or len(reply_message.split()) < LEN_REPLY_THRESHOLD:
+                logger.info("Score too low: " + str(reply_score))
+            else:
+                reply_message = '>>> ' + post[:80] + '...\n' + reply_message
+                send_message(CHAT_ID, reply_message)
 
         save_message(last_post, True)
 
