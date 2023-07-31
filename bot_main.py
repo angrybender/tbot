@@ -82,8 +82,6 @@ def is_mention(message: dict):
 def is_post_link(message: str):
     message = message.strip()
 
-    logger.info("is_post_link: " + message)
-
     try:
         result = urlparse(message)
         return all([result.scheme, result.netloc])
@@ -179,8 +177,6 @@ def main_cycle():
     last_post = source_messages[-1]
     if time.time() - last_post['message']['date'] >= WAIT_TO_POST_COMMENT['value'] and not last_post.get('BOT:processed', False):
         post = group_user_messages(messages, last_post)
-
-        logger.info("POST:" + post)
 
         if is_post_link(post):
             logger.info("Try to fetch URI content...")
