@@ -4,8 +4,10 @@ from formatter_output import process_reply, preprocess_messages
 import os
 import time
 import random
+from urllib.parse import urlparse
 from context_service import get_status
 from im_service import send_message, send_typing
+from site_parser import get_content
 
 import logging
 from sys import stdout
@@ -22,6 +24,7 @@ CHAT_ID = int(os.environ.get('CHAT_ID'))
 TECH_CHAT_ID = int(os.environ.get('TECH_CHAT_ID'))
 MY_NAME = os.environ.get('MY_NAME')
 TIME_IDLE_THRESHOLD = [3600, 3600*3]
+TIME_IDLE_THRESHOLD = [30, 31]
 MESSAGES_CLUSTER_THRESHOLD = 60
 SCORE_REPLY_THRESHOLD = 0.75
 LEN_REPLY_THRESHOLD = 10
@@ -76,6 +79,17 @@ def is_mention(message: dict):
     post = message.get('text', '')
     return post.find('@' + MY_NAME) == 0
 
+
+def is_post_link(message: str):
+    message = message.strip()
+
+    logger.info("is_post_link: " + message)
+
+    try:
+        result = urlparse(message)
+        return all([result.scheme, result.netloc])
+    except:
+        return False
 
 def progress_cb(epoch, attempt):
     send_typing(CHAT_ID)
@@ -166,6 +180,13 @@ def main_cycle():
     last_post = source_messages[-1]
     if time.time() - last_post['message']['date'] >= WAIT_TO_POST_COMMENT['value'] and not last_post.get('BOT:processed', False):
         post = group_user_messages(messages, last_post)
+
+        logger.info("POST:" + post)
+
+        if is_post_link(post):
+            logger.info("Try to fetch URI content...")
+            post = get_content(post.strip())
+
         if len(post.split()) < MIN_POST_REPLY_WORDS:
             return
 
