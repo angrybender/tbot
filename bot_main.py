@@ -64,6 +64,12 @@ def set_last_news_comment(comment_time):
     save_item({'value': comment_time}, 'LAST_NEWS_COMMENT', NEWS_COMMENT_IDLE*2)
 
 
+
+save_item({'value': time.time()}, 'TIME_BOT_STARTED', 3600)
+def get_bot_started():
+    return get_by_key('TIME_BOT_STARTED').get('value')
+
+
 def send_debug_message(text):
     text = text.strip()
     result = send_message(TECH_CHAT_ID, text)
@@ -237,9 +243,12 @@ def main_cycle():
 
     # comment some news:
     last_news_comment_time = get_last_news_comment()
-    if last_post and current_time - last_post['message']['date'] >= chat_last_activity \
-            and current_time - last_news_comment_time > NEWS_COMMENT_IDLE \
-            or not last_post and current_time - last_news_comment_time > NEWS_COMMENT_IDLE:
+    if last_post:
+        last_chat_activity_time = last_post['message']['date']
+    else:
+        last_chat_activity_time = get_bot_started()
+
+    if current_time - last_chat_activity_time > chat_last_activity and current_time - last_news_comment_time > NEWS_COMMENT_IDLE:
         logger.info("Trying to comment news...")
 
         for news_item in get_latest_news():
