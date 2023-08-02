@@ -5,3 +5,4 @@ git+https://github.com/huggingface/peft.git
 elasticsearch==7.17.2
 beautifulsoup4
 html5lib
+rss-parser

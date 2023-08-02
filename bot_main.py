@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 from context_service import get_status
 from im_service import send_message, send_typing
 from site_parser import get_content
+from redis_service import save_item, get_by_key
+from news_service import get_latest_news
 
 import logging
 from sys import stdout
@@ -23,15 +25,43 @@ logger.addHandler(consoleHandler)
 CHAT_ID = int(os.environ.get('CHAT_ID'))
 TECH_CHAT_ID = int(os.environ.get('TECH_CHAT_ID'))
 MY_NAME = os.environ.get('MY_NAME')
-TIME_IDLE_THRESHOLD = [3600, 3600*3]
+TIME_IDLE_THRESHOLD = [int(_) for _ in os.environ.get('TIME_IDLE_THRESHOLD').split(',')]
+
+NEWS_COMMENT_IDLE = int(os.environ.get('TIME_NEWS_COMMENT'))
+assert NEWS_COMMENT_IDLE > 0
+
 MESSAGES_CLUSTER_THRESHOLD = 60
 SCORE_REPLY_THRESHOLD = 0.75
 LEN_REPLY_THRESHOLD = 10
 MIN_POST_REPLY_WORDS = 20
 
-WAIT_TO_POST_COMMENT = {
-    'value': random.randint(TIME_IDLE_THRESHOLD[0], TIME_IDLE_THRESHOLD[1])
-}
+
+def set_chat_activity_ttl():
+    value = random.randint(TIME_IDLE_THRESHOLD[0], TIME_IDLE_THRESHOLD[1])
+    save_item({
+        'value': value
+    }, 'WAIT_TO_POST_COMMENT', 86400)
+    return value
+
+
+def get_chat_activity_ttl():
+    value = get_by_key('WAIT_TO_POST_COMMENT')
+    if not value:
+        return set_chat_activity_ttl()
+    else:
+        return value['value']
+
+
+def get_last_news_comment():
+    value = get_by_key('LAST_NEWS_COMMENT')
+    if not value:
+        return 0
+    else:
+        return value['value']
+
+
+def set_last_news_comment(comment_time):
+    save_item({'value': comment_time}, 'LAST_NEWS_COMMENT', NEWS_COMMENT_IDLE*2)
 
 
 def send_debug_message(text):
@@ -87,6 +117,7 @@ def is_post_link(message: str):
         return all([result.scheme, result.netloc])
     except:
         return False
+
 
 def progress_cb(epoch, attempt):
     send_typing(CHAT_ID)
@@ -170,12 +201,20 @@ def main_cycle():
             save_message(source_message, True)
             is_chat_processed = True
 
-    if is_chat_processed or not source_messages:
+    if is_chat_processed:
         return
 
     # comment last post:
-    last_post = source_messages[-1]
-    if time.time() - last_post['message']['date'] >= WAIT_TO_POST_COMMENT['value'] and not last_post.get('BOT:processed', False):
+    if source_messages:
+        last_post = source_messages[-1]
+    else:
+        last_post = None
+
+    chat_last_activity = get_chat_activity_ttl()
+    current_time = time.time()
+    if last_post and \
+            current_time - last_post['message']['date'] >= chat_last_activity \
+            and not last_post.get('BOT:processed', False):
         post = group_user_messages(messages, last_post)
 
         if is_post_link(post):
@@ -193,11 +232,32 @@ def main_cycle():
 
         save_message(last_post, True)
 
-        WAIT_TO_POST_COMMENT['value'] = random.randint(TIME_IDLE_THRESHOLD[0], TIME_IDLE_THRESHOLD[1])
-        logger.info("Sleep for " + str(WAIT_TO_POST_COMMENT['value']))
+        time_sleep = set_chat_activity_ttl()
+        logger.info(f"Sleep for {time_sleep}")
+
+    # comment some news:
+    last_news_comment_time = get_last_news_comment()
+    if last_post and current_time - last_post['message']['date'] >= chat_last_activity \
+            and current_time - last_news_comment_time > NEWS_COMMENT_IDLE \
+            or not last_post and current_time - last_news_comment_time > NEWS_COMMENT_IDLE:
+        logger.info("Trying to comment news...")
+
+        for news_item in get_latest_news():
+            semaphore = f"NEWS_SEMAPHORE:{news_item['url']}"
+            if get_by_key(semaphore):
+                continue
+
+            logger.info("Process new: " + news_item['text'][:40] + "...")
+            reply_message, reply_score = generate_comment_to_post(news_item['text'])
+            if reply_score >= SCORE_REPLY_THRESHOLD or len(reply_message.split()) >= LEN_REPLY_THRESHOLD:
+                send_message(CHAT_ID, reply_message + "\n" + news_item['url'])
+                save_item({"processed": True}, semaphore, 864000)
+                break
+
+        set_last_news_comment(current_time)
 
 
-send_debug_message("INFO: Я готов!")
+send_debug_message(f"INFO: Я готов!\nРазброс времени ожидания: {TIME_IDLE_THRESHOLD[0]}...{TIME_IDLE_THRESHOLD[1]}\nПериод публикации новостей: {NEWS_COMMENT_IDLE}")
 last_send_error = ''
 while True:
     try:

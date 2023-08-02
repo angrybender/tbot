@@ -37,6 +37,8 @@ services:
       MY_NAME: ${MY_NAME}
       ES_HOST: ${ES_HOST}
       DEBUG: ${DEBUG}
+      TIME_IDLE_THRESHOLD: ${TIME_IDLE_THRESHOLD}
+      TIME_NEWS_COMMENT: ${TIME_NEWS_COMMENT}
     volumes:
       - ../../../:/app
     links:

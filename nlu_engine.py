@@ -1,7 +1,6 @@
 import re
 from transformers import LlamaForCausalLM, LlamaTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model, TaskType, PeftConfig, PeftModel
-import torch
 import numpy as np
 import os
 
