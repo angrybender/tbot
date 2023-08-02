@@ -10,6 +10,7 @@ from im_service import send_message, send_typing
 from site_parser import get_content
 from redis_service import save_item, get_by_key
 from news_service import get_latest_news
+import datetime
 
 import logging
 from sys import stdout
@@ -248,7 +249,9 @@ def main_cycle():
     else:
         last_chat_activity_time = get_bot_started()
 
-    if current_time - last_chat_activity_time > chat_last_activity and current_time - last_news_comment_time > NEWS_COMMENT_IDLE:
+    current_hour = datetime.datetime.now().time().hour
+    if (current_hour >= 20 or current_hour <= 6) and \
+            current_time - last_chat_activity_time > chat_last_activity and current_time - last_news_comment_time > NEWS_COMMENT_IDLE:
         logger.info("Trying to comment news...")
 
         for news_item in get_latest_news():
