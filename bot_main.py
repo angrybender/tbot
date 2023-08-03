@@ -261,7 +261,7 @@ def main_cycle():
                 continue
 
             logger.info("Process new: " + news_item['text'][:40] + "...")
-            reply_message, reply_score = generate_comment_to_post(news_item['text'])
+            reply_message, reply_score = generate_comment_to_post(news_item['text'], 0.5)
             if reply_score >= SCORE_REPLY_THRESHOLD or len(reply_message.split()) >= LEN_REPLY_THRESHOLD:
                 send_message(CHAT_ID, reply_message + "\n" + news_item['url'])
                 save_item({"processed": True}, semaphore, 864000)

@@ -41,7 +41,7 @@ def truncate_text_to_max(text, max_len):
         return text
 
 
-def generate_message(contexts, message, progress_cb=None):
+def generate_message(contexts, message, progress_cb=None, temperature=0.1):
     if not generate_model:
         return "test output\nHistory:\n" + "\n".join(contexts) + "\nsource message:\n" + message, 1.0
 
@@ -105,7 +105,8 @@ def generate_message(contexts, message, progress_cb=None):
         pad_token_id=generator_tokenizer.pad_token_id,
         num_return_sequences=MAX_SAMPLE,
         do_sample=True,
-        temperature=0.1, top_p=1000,
+        temperature=temperature,
+        top_p=1000,
         repetition_penalty=1.1,
         renormalize_logits=True,
         num_beams=2,
@@ -150,5 +151,5 @@ def generate_answer_for_chat(contexts: list, message: str, progress_cb=None):
     return generate_message(contexts, message, progress_cb)
 
 
-def generate_comment_to_post(post):
-    return generate_message([], post + "\nНапиши комментарий к новости")
+def generate_comment_to_post(post, temperature=0.1):
+    return generate_message([], post + "\nНапиши комментарий к новости", None, temperature)
