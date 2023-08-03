@@ -66,9 +66,10 @@ def set_last_news_comment(comment_time):
 
 
 
-save_item({'value': time.time()}, 'TIME_BOT_STARTED', 3600)
+save_item({'value': time.time()}, 'TIME_BOT_STARTED', 86400)
 def get_bot_started():
-    return get_by_key('TIME_BOT_STARTED').get('value')
+    value = get_by_key('TIME_BOT_STARTED')
+    return value.get('value') if value else 0
 
 
 def send_debug_message(text):
