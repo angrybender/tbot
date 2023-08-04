@@ -29,7 +29,10 @@ def get_latest_news():
 
             description = BeautifulSoup(str(item.description), 'html.parser').text
             if date_object > current_date and description != 'None':
-                output.append({'text': str(item.title) + "\n" + description, 'url': str(item.link)})
+                title = str(item.title)
+                if title[-1] != '.':
+                    title += '.'
+                output.append({'text': title + " " + description, 'url': str(item.link)})
 
     random.shuffle(output)
     return output

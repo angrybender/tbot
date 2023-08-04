@@ -149,6 +149,19 @@ def group_user_messages(messages, start_message):
     return ' '.join(cluster)
 
 
+def score_comment(text):
+    words = text.lower().split()
+    total_words = len(set(words))
+    words_idx = {}
+    for w in words:
+        if w in words_idx:
+            words_idx[w]+=1
+        else:
+            words_idx[w] = 1
+
+    return sum(words_idx.values())/total_words
+
+
 def main_cycle():
     source_messages = read_history()
     messages = [m for m in source_messages if not m.get('BOT:processed', False)]
@@ -262,7 +275,7 @@ def main_cycle():
 
             logger.info("Process new: " + news_item['text'][:40] + "...")
             reply_message, reply_score = generate_comment_to_post(news_item['text'], 0.5)
-            if reply_score >= SCORE_REPLY_THRESHOLD or len(reply_message.split()) >= LEN_REPLY_THRESHOLD:
+            if reply_score >= SCORE_REPLY_THRESHOLD and len(reply_message.split()) >= LEN_REPLY_THRESHOLD and score_comment(reply_message) < 1.8:
                 send_message(CHAT_ID, reply_message + "\n" + news_item['url'])
                 save_item({"processed": True}, semaphore, 864000)
                 break
