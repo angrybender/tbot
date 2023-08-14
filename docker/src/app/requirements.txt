@@ -6,3 +6,4 @@ elasticsearch==7.17.2
 beautifulsoup4
 html5lib
 rss-parser
+scikit-learn==1.3

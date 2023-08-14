@@ -10,6 +10,7 @@ from im_service import send_message, send_typing
 from site_parser import get_content
 from redis_service import save_item, get_by_key
 from news_service import get_latest_news
+from topic_model import get_top_similar_n
 import datetime
 
 import logging
@@ -35,6 +36,8 @@ MESSAGES_CLUSTER_THRESHOLD = 60
 SCORE_REPLY_THRESHOLD = 0.75
 LEN_REPLY_THRESHOLD = 10
 MIN_POST_REPLY_WORDS = 20
+TOP_N_SIMILAR_NEWS = 5
+TOP_N_HISTORY_POSTS = 10
 
 
 def set_chat_activity_ttl():
@@ -264,11 +267,21 @@ def main_cycle():
         last_chat_activity_time = get_bot_started()
 
     current_hour = datetime.datetime.now().time().hour
-    if (current_hour >= 20 or current_hour <= 6) and \
+    if (current_hour >= 20 or current_hour <= 20) and \
             current_time - last_chat_activity_time > chat_last_activity and current_time - last_news_comment_time > NEWS_COMMENT_IDLE:
-        logger.info("Trying to comment news...")
 
-        for news_item in get_latest_news():
+        all_possible_posts = (m['message'].get('text', '') for m in source_messages)
+        all_possible_posts = [m for m in all_possible_posts]
+        if len(all_possible_posts) == 0:
+            return
+        all_possible_posts = sorted(all_possible_posts, key=lambda m: -len(m))[:TOP_N_HISTORY_POSTS]
+
+        logger.info("Trying to comment news, with: " + str(len(all_possible_posts)) + ' posts...')
+        all_news = get_latest_news()
+        top_n_news_i = get_top_similar_n(all_possible_posts, [n['text'] for n in all_news], TOP_N_SIMILAR_NEWS)
+
+        for news_item_i in top_n_news_i:
+            news_item = all_news[news_item_i]
             semaphore = f"NEWS_SEMAPHORE:{news_item['url']}"
             if get_by_key(semaphore):
                 continue

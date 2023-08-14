@@ -34,5 +34,4 @@ def get_latest_news():
                     title += '.'
                 output.append({'text': title + " " + description, 'url': str(item.link)})
 
-    random.shuffle(output)
     return output
