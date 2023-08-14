@@ -267,7 +267,7 @@ def main_cycle():
         last_chat_activity_time = get_bot_started()
 
     current_hour = datetime.datetime.now().time().hour
-    if (current_hour >= 20 or current_hour <= 20) and \
+    if (current_hour >= 20 or current_hour <= 6) and \
             current_time - last_chat_activity_time > chat_last_activity and current_time - last_news_comment_time > NEWS_COMMENT_IDLE:
 
         all_possible_posts = (m['message'].get('text', '') for m in source_messages)
