@@ -2,10 +2,9 @@ from rss_parser import Parser
 from requests import get
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-import random
 
 rss_urls = [
-    'https://lenta.ru/rss/top7',
+    'https://www.cnews.ru/inc/rss/news.xml',
     'https://www.ixbt.com/export/news.rss',
 ]
 
