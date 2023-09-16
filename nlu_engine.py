@@ -109,7 +109,7 @@ def generate_message(contexts, message, progress_cb=None, temperature=0.1):
         top_p=1000,
         repetition_penalty=1.1,
         renormalize_logits=True,
-        num_beams=2,
+        num_beams=MAX_SAMPLE,
     )
     if progress_cb:
         progress_cb(1, 1)
