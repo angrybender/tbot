@@ -130,7 +130,7 @@ def is_post_link(message: str):
         return False
 
 
-def progress_cb(epoch, attempt):
+def progress_cb():
     send_typing(CHAT_ID)
 
 
@@ -201,7 +201,8 @@ def main_cycle():
             saved_context = [preprocess_messages(m['text']) for m in chat_sequence]
 
             try:
-                reply_message, reply_score = generate_answer_for_chat(saved_context, post, progress_cb)
+                progress_cb()
+                reply_message, reply_score = generate_answer_for_chat(saved_context, post)
             except Exception as e:
                 save_message(source_message, True)
                 raise e

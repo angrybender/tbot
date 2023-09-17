@@ -45,11 +45,14 @@ services:
       - ../../../:/app
     links:
       - service-tbot-redis
+      - service-tbot-nlu-api
     command: ["python", "/app/bot_main.py"]
 
   service-tbot-nlu-api:
     image: service-nlu-app
     restart: always
+    ports:
+      - "8000:5000"
     build:
       context: ../../../
       dockerfile: docker/src/app_nlu/Dockerfile
@@ -58,7 +61,7 @@ services:
       NLU_API_TOKEN: ${NLU_API_TOKEN}
     volumes:
       - ../../../:/app
-    command: [ "python", "/app/nlu_rest_api.py" ]
+    command: [ "flask", "--app", "nlu_rest_api", "run", "--host=0.0.0.0" ]
 
   service-tbot-redis:
     image: redis:5.0.7-alpine
