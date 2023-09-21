@@ -1,0 +1,21 @@
+version: '3'
+networks:
+  default:
+    external: true
+    name: kirv_tbot
+
+services:
+  service-tbot-nlu-api:
+    image: service-nlu-app
+    restart: always
+    ports:
+      - "8000:5000"
+    build:
+      context: ../../..
+      dockerfile: docker/src/app_nlu_gpu/Dockerfile
+    environment:
+      DEBUG: ${DEBUG}
+      NLU_API_TOKEN: ${NLU_API_TOKEN}
+    volumes:
+      - ../../../:/app
+    command: [ "flask", "--app", "nlu_rest_api", "run", "--host=0.0.0.0" ]
