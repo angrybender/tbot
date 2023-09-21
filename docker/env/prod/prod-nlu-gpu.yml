@@ -19,3 +19,10 @@ services:
     volumes:
       - ../../../:/app
     command: [ "flask", "--app", "nlu_rest_api", "run", "--host=0.0.0.0" ]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
