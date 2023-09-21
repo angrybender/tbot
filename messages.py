@@ -1,29 +1,43 @@
-import json
-import os
-import redis
+from redis_service import get_items_by_query, save_item, get_by_key
 
-API_KEY = os.environ.get('API_KEY')
-CHAT_ID = int(os.environ.get('CHAT_ID'))
-REDIS_HOST = os.environ.get('REDIS_HOST')
+_MESSAGE_HISTORY_TTL = 86400
 
 
 def read_history():
-    r = redis.Redis(host=REDIS_HOST, port=6379, db=0)
-
-    messages_ids = r.keys('MC_MESSAGES.*')
-
-    messages = []
-    for r_id in messages_ids:
-        message = r.get(r_id).decode('utf')
-        message = json.loads(message)
-        messages.append(message)
-
+    messages = get_items_by_query('MC_MESSAGES.*')
     messages = sorted(messages, key=lambda m: m['update_id'])
     return list(messages)
 
 
-def save_message(message):
-    r = redis.Redis(host=REDIS_HOST, port=6379, db=0)
+def save_message(message, processed=False):
+    if processed:
+        message['BOT:processed'] = True
+    save_item(message, 'MC_MESSAGES.' + str(message['update_id']), _MESSAGE_HISTORY_TTL)
 
-    r.set('MC_MESSAGES.' + str(message['update_id']), json.dumps(message))
-    r.expire('MC_MESSAGES.' + str(message['update_id']), 3600*3)
+
+def save_chat_sequence(parent_id, message_id, message_text):
+    sequence = _get_chat_sequence_by_parent_id(parent_id)
+    if not sequence:
+        sequence = []
+
+    sequence.append({'id': message_id, 'text': message_text.strip()})
+
+    save_item(sequence, 'MC_CHAT_SEQUENCE.' + str(parent_id), _MESSAGE_HISTORY_TTL)
+    save_item({'parent_id': parent_id}, 'MC_CHAT_SEQUENCE_INDEX.' + str(message_id), _MESSAGE_HISTORY_TTL)
+
+
+def _get_chat_sequence_by_parent_id(parent_id):
+    sequence = get_by_key('MC_CHAT_SEQUENCE.' + str(parent_id))
+    if not sequence:
+        return []
+    else:
+        return sequence
+
+
+def find_chat_sequence_by_message(message_id):
+    parent = get_by_key('MC_CHAT_SEQUENCE_INDEX.' + str(message_id))
+    if not parent:
+        return []
+
+    parent_id = parent['parent_id']
+    return _get_chat_sequence_by_parent_id(parent_id)

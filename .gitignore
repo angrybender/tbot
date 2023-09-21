@@ -1,2 +1,3 @@
 models
 .env
+docker/src/app/post_install.sh

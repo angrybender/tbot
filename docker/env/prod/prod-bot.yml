@@ -1,20 +1,22 @@
 version: '3'
 networks:
   default:
-    external:
-      name: kirv_tbot
+    external: true
+    name: kirv_tbot
 
 services:
   service-tbot-message-cacther:
     image: service-tbot-app
     build:
-      context: ../../../
+      context: ../../..
       dockerfile: docker/src/app/Dockerfile
     environment:
       API_KEY: ${API_KEY}
       CHAT_ID: ${CHAT_ID}
+      TECH_CHAT_ID: ${TECH_CHAT_ID}
       REDIS_HOST: service-tbot-redis
       MY_NAME: ${MY_NAME}
+      DEBUG: ${DEBUG}
     volumes:
       - ../../../:/app
     links:
@@ -23,14 +25,22 @@ services:
 
   service-tbot-logic:
     image: service-tbot-app
+    restart: always
     build:
-      context: ../../../
+      context: ../../..
       dockerfile: docker/src/app/Dockerfile
     environment:
       API_KEY: ${API_KEY}
       CHAT_ID: ${CHAT_ID}
+      TECH_CHAT_ID: ${TECH_CHAT_ID}
       REDIS_HOST: service-tbot-redis
       MY_NAME: ${MY_NAME}
+      ES_HOST: ${ES_HOST}
+      DEBUG: ${DEBUG}
+      TIME_IDLE_THRESHOLD: ${TIME_IDLE_THRESHOLD}
+      TIME_NEWS_COMMENT: ${TIME_NEWS_COMMENT}
+      NLU_API_HOST: ${NLU_API_HOST}
+      NLU_API_TOKEN: ${NLU_API_TOKEN}
     volumes:
       - ../../../:/app
     links:

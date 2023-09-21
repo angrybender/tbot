@@ -13,8 +13,10 @@ services:
     environment:
       API_KEY: ${API_KEY}
       CHAT_ID: ${CHAT_ID}
+      TECH_CHAT_ID: ${TECH_CHAT_ID}
       REDIS_HOST: service-tbot-redis
       MY_NAME: ${MY_NAME}
+      DEBUG: ${DEBUG}
     volumes:
       - ../../../:/app
     links:
@@ -23,19 +25,43 @@ services:
 
   service-tbot-logic:
     image: service-tbot-app
+    restart: always
     build:
       context: ../../../
       dockerfile: docker/src/app/Dockerfile
     environment:
       API_KEY: ${API_KEY}
       CHAT_ID: ${CHAT_ID}
+      TECH_CHAT_ID: ${TECH_CHAT_ID}
       REDIS_HOST: service-tbot-redis
       MY_NAME: ${MY_NAME}
+      ES_HOST: ${ES_HOST}
+      DEBUG: ${DEBUG}
+      TIME_IDLE_THRESHOLD: ${TIME_IDLE_THRESHOLD}
+      TIME_NEWS_COMMENT: ${TIME_NEWS_COMMENT}
+      NLU_API_HOST: ${NLU_API_HOST}
+      NLU_API_TOKEN: ${NLU_API_TOKEN}
     volumes:
       - ../../../:/app
     links:
       - service-tbot-redis
+      - service-tbot-nlu-api
     command: ["python", "/app/bot_main.py"]
+
+  service-tbot-nlu-api:
+    image: service-nlu-app
+    restart: always
+    ports:
+      - "8000:5000"
+    build:
+      context: ../../../
+      dockerfile: docker/src/app_nlu/Dockerfile
+    environment:
+      DEBUG: ${DEBUG}
+      NLU_API_TOKEN: ${NLU_API_TOKEN}
+    volumes:
+      - ../../../:/app
+    command: [ "flask", "--app", "nlu_rest_api", "run", "--host=0.0.0.0" ]
 
   service-tbot-redis:
     image: redis:5.0.7-alpine
