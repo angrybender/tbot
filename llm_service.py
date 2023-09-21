@@ -22,8 +22,8 @@ generator_tokenizer.pad_token_id = 0
 if os.environ.get('DEBUG'):
     generate_model = None
 else:
-    generate_model = LlamaForCausalLM.from_pretrained('/app/models/generator_llama', device_map="auto", load_in_8bit=False)
-    generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/", device_map="auto", load_in_8bit=False)
+    generate_model = LlamaForCausalLM.from_pretrained('/app/models/generator_llama', device_map=0, load_in_8bit=False)
+    generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/", device_map=0, load_in_8bit=False)
 
 
 score_pattern_tokens = generator_tokenizer("Хорошо", return_tensors="pt")['input_ids'][0][1:]
