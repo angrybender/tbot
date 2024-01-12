@@ -4,8 +4,10 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
 rss_urls = [
-    'https://www.cnews.ru/inc/rss/news.xml',
-    'https://www.ixbt.com/export/news.rss',
+    #'https://www.cnews.ru/inc/rss/news.xml',
+    #'https://www.ixbt.com/export/news.rss',
+    'https://vc.ru/rss',
+    'https://dtf.ru/rss',
 ]
 
 
