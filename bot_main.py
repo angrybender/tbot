@@ -210,8 +210,12 @@ def main_cycle():
             reply_message = process_reply(reply_message)
 
             message_prefix = '@' + message['from']['username']
-            if reply_score < SCORE_REPLY_THRESHOLD:
+            if reply_score < 0.01:
+                message_prefix += ' мне нечего сказать'
+                reply_message = ''
+            elif reply_score < SCORE_REPLY_THRESHOLD:
                 message_prefix += ' (я не уверен в релевантности ответа)\n'
+
             raw_reply_message = reply_message
             reply_message = message_prefix + ' ' + reply_message
 

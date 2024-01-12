@@ -1,4 +1,0 @@
-transformers
-sentencepiece
-git+https://github.com/huggingface/peft.git
-Flask==2.3.1

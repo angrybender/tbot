@@ -22,8 +22,8 @@ generator_tokenizer.pad_token_id = 0
 if os.environ.get('DEBUG'):
     generate_model = None
 else:
-    generate_model = LlamaForCausalLM.from_pretrained('/app/models/generator_llama', device_map=0, load_in_8bit=False, low_cpu_mem_usage=True)
-    generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/", device_map=0, load_in_8bit=False, low_cpu_mem_usage=True)
+    generate_model = LlamaForCausalLM.from_pretrained('/app/models/generator_llama', device_map=0, load_in_8bit=True, low_cpu_mem_usage=True)
+    generate_model = PeftModel.from_pretrained(generate_model, "/app/models/train_llama_lora/", device_map=0, load_in_8bit=True, low_cpu_mem_usage=True)
 
 
 score_pattern_tokens = generator_tokenizer("Хорошо", return_tensors="pt")['input_ids'][0][1:]
@@ -122,4 +122,4 @@ def generate_by_context_and_message(prompt_extended_contexts, contexts, message,
 
     output_variants = sorted(output_variants, key=lambda score_comment: -score_comment[0])
     max_score, output_comment = output_variants[0]
-    return output_comment, max_score
+    return output_comment, float(max_score)

@@ -18,7 +18,6 @@ NLU_API_HOST = os.environ.get('NLU_API_HOST')
 NLU_API_TOKEN = os.environ.get('NLU_API_TOKEN')
 
 
-
 def truncate_text_to_max(text, max_len):
     words = text.split()
     if len(words) > max_len:
@@ -54,6 +53,17 @@ def generate_message(contexts, message, temperature=0.1):
         output = requests.post(NLU_API_HOST, json=generate_parameters).json()
     except Exception as e:
         raise Exception(f"NLU REST API error: {e}")
+
+    check_duplicated = output['output'].lower().replace(message.lower(), '')
+    if len(check_duplicated) < 0.25*len(output['output']):
+        output['score'] = 0.0
+
+    sub_tokens = output['output'].lower().split(',')
+    if len(sub_tokens) > 5:
+        check_duplicated = output['output'].lower().replace(sub_tokens[0].lower() + ',', '').strip()
+
+        if len(check_duplicated) < 0.25 * len(output['output']):
+            output['score'] = 0.0
 
     return output['output'], output['score']
 

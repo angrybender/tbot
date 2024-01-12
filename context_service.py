@@ -22,6 +22,9 @@ def get_connection():
 
 
 def get_context(q, limit):
+    if not os.environ.get('ES_HOST'):
+        return []
+
     conn = get_connection()
 
     article = conn.search(index='wiki_1', body={
