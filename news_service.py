@@ -1,4 +1,4 @@
-from rss_parser import Parser
+import feedparser
 from requests import get
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
@@ -17,20 +17,20 @@ def get_latest_news():
 
         try:
             response = get(rss_url, timeout=10)
-            rss = Parser.parse(response.text)
+            rss = feedparser.parse(response.text)
         except:
             continue
 
         current_date = datetime.now() - timedelta(days=1)
         current_date = current_date.strftime('%Y-%m-%d')
 
-        for item in rss.channel.items:
-            date_object = datetime.strptime(str(item.pub_date), "%a, %d %b %Y %H:%M:%S %z")
+        for item in rss.entries:
+            date_object = datetime.strptime(item['published'], "%a, %d %b %Y %H:%M:%S %z")
             date_object = date_object.strftime('%Y-%m-%d')
 
-            description = BeautifulSoup(str(item.description), 'html.parser').text
+            description = BeautifulSoup(item['summary'], 'html.parser').text
             if date_object > current_date and description != 'None':
-                title = str(item.title)
+                title = item['title']
                 if title[-1] != '.':
                     title += '.'
                 output.append({'text': title + " " + description, 'url': str(item.link)})

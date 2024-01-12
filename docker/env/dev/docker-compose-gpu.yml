@@ -49,13 +49,13 @@ services:
     command: ["python", "/app/bot_main.py"]
 
   service-tbot-nlu-api:
-    image: service-nlu-app
+    image: service-tbot-nlu-api
     restart: always
     ports:
       - "8000:5000"
     build:
       context: ../../../
-      dockerfile: docker/src/app_nlu/Dockerfile
+      dockerfile: docker/src/app_nlu_gpu/Dockerfile-dev
     environment:
       DEBUG: ${DEBUG}
       NLU_API_TOKEN: ${NLU_API_TOKEN}
